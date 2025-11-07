@@ -39,6 +39,8 @@ $pdo->prepare('UPDATE users SET last_login_at = NOW() WHERE id = ?')->execute([$
 unset($user['password_hash']);
 $_SESSION['user'] = $user;
 $_SESSION['authenticated'] = true;
+$_SESSION['user_id'] = $user['id'];
+$_SESSION['user_name'] = $user['first_name'] . ' ' . $user['last_name'];
 
 json_response(['user' => $user, 'token' => base64_encode(random_bytes(24))]);
 

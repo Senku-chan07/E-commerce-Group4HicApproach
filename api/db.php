@@ -3,10 +3,10 @@
 // Adjust credentials if you changed XAMPP defaults
 
 $DB_HOST = '127.0.0.1';
-$DB_PORT = '3306';
+$DB_PORT = '3307';
 $DB_NAME = 'eshop';
 $DB_USER = 'root';
-$DB_PASS = 'jeanmitzi';
+$DB_PASS = '';
 
 function get_pdo(){
     static $pdo = null;

@@ -1,8 +1,20 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
-if (empty($_SESSION['authenticated']) || empty($_SESSION['user'])) {
-  header('Location: index.php?loginRequired=1');
-  exit;
+require_once __DIR__ . '/api/session_handler.php';
+
+if (!is_logged_in()) {
+    set_flash_message('warning', 'Please log in to proceed to checkout.');
+    header('Location: index.php?loginRequired=1');
+    exit;
+}
+
+$current_user = get_session_user();
+$cart_count = get_cart_count();
+
+// If cart is empty, redirect to cart page
+if ($cart_count === 0) {
+    set_flash_message('warning', 'Your cart is empty. Add some items before checking out.');
+    header('Location: cart.php');
+    exit;
 }
 ?>
 <!DOCTYPE html>

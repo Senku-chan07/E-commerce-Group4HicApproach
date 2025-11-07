@@ -1,12 +1,21 @@
-// Simple cart manager using localStorage. Exposes addToCart(product) and renders cart in #cartItems (jQuery)
 (function($){
   'use strict';
-  var STORAGE_KEY = 'nethshop_cart_v1';
+  function getStorageKey(){
+    try{
+      var session = JSON.parse(localStorage.getItem('nethshop_session') || 'null');
+      if (session && session.user && (session.user.id || session.user.user_id)){
+        var uid = session.user.id || session.user.user_id;
+        return 'nethshop_cart_user_' + uid + '_v1';
+      }
+    } catch(e){}
+    return 'nethshop_cart_v1';
+  }
 
   function readCart(){
-    try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }catch(e){ return []; }
+    var key = getStorageKey();
+    try{ return JSON.parse(localStorage.getItem(key) || '[]'); }catch(e){ return []; }
   }
-  function writeCart(cart){ localStorage.setItem(STORAGE_KEY, JSON.stringify(cart)); }
+  function writeCart(cart){ var key = getStorageKey(); localStorage.setItem(key, JSON.stringify(cart)); }
 
   function formatPrice(n){ return '₱' + Number(n).toLocaleString(); }
 
@@ -61,8 +70,7 @@
       render();
     });
 
-    // update order summary (inject into #summaryList, #cartSubtotal, #cartTotal)
-    var total = 0;
+  var total = 0;
     var $list = $('#summaryList');
     if ($list.length) $list.empty();
     cart.forEach(function(item){
@@ -75,8 +83,7 @@
     var $subtotalEl = $('#cartSubtotal'); if ($subtotalEl.length) $subtotalEl.text(formatPrice(total));
     var $totalEl = $('#cartTotal'); if ($totalEl.length) $totalEl.text(formatPrice(total));
 
-    // enable/disable checkout button
-    var $checkoutBtn = $('#checkoutSummaryBtn');
+  var $checkoutBtn = $('#checkoutSummaryBtn');
     if ($checkoutBtn.length) {
       if (total <= 0) { 
         $checkoutBtn.addClass('disabled').attr('aria-disabled','true'); 
@@ -86,7 +93,6 @@
     }
   }
 
-  // Public API
   window.Cart = {
     addToCart: function(product){
       var cart = readCart();
@@ -100,6 +106,24 @@
     _read: readCart
   };
 
-  // init
+  window.Cart.migrateGuestToUser = function(){
+    try{
+      var guestKey = 'nethshop_cart_v1';
+      var session = JSON.parse(localStorage.getItem('nethshop_session') || 'null');
+      if (!session || !session.user) return;
+      var uid = session.user.id || session.user.user_id;
+      if (!uid) return;
+      var userKey = 'nethshop_cart_user_' + uid + '_v1';
+      var guest = JSON.parse(localStorage.getItem(guestKey) || '[]');
+      var user = JSON.parse(localStorage.getItem(userKey) || '[]');
+      var map = {};
+      (user || []).forEach(function(it){ if (it && it.id) map[it.id] = it; else map['__' + Math.random()] = it; });
+      (guest || []).forEach(function(it){ if (it && it.id){ if (map[it.id]) map[it.id].qty = (map[it.id].qty||0) + (it.qty||0); else map[it.id] = it; } else { map['__' + Math.random()] = it; } });
+      var merged = Object.keys(map).map(function(k){ return map[k]; });
+      localStorage.setItem(userKey, JSON.stringify(merged));
+      localStorage.removeItem(guestKey);
+    }catch(e){}
+  };
+
   $(document).ready(function(){ render(); });
 })(window.jQuery);

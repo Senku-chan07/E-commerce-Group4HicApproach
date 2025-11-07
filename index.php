@@ -1,9 +1,13 @@
+<?php
+require_once __DIR__ . '/api/session_handler.php';
+$current_user = get_session_user();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>E-Shop - Bootstrap</title>
+  <title>Welcome to Neth Shop</title>
 
   <!-- Bootstrap CSS (comment out to see plain HTML) -->
   <link href="./dist/styles.css" rel="stylesheet">
@@ -17,8 +21,14 @@
   <!-- HERO -->
   <header class="site-hero text-center text-white py-5">
     <div class="container">
-      <h1 class="display-4">Welcome to Neth Shop</h1>
-      <p class="lead">Discover premium products for your business and lifestyle</p>
+      <?php if ($current_user): ?>
+        <h1 class="display-4">Welcome back, <?php echo htmlspecialchars($current_user['name']); ?>!</h1>
+        <p class="lead">Continue shopping for premium products</p>
+      <?php else: ?>
+        <h1 class="display-4">Welcome to Neth Shop</h1>
+        <p class="lead">Discover premium products for your business and lifestyle</p>
+        <button class="btn btn-light btn-lg" data-bs-toggle="modal" data-bs-target="#loginModal">Sign in to Start Shopping</button>
+      <?php endif; ?>
     </div>
   </header>
 

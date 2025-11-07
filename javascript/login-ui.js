@@ -1,11 +1,8 @@
-// login-ui.js - handles the login & signup modal behavior with jQuery validation
 (function($){
   'use strict';
 
-  // helper: safely get jQuery and return early if missing
   if (typeof $ === 'undefined') return;
 
-  
   function showSuccessModalAndRedirect(elOrId){
     var $successEl = (typeof elOrId === 'string') ? $('#' + elOrId) : $(elOrId);
     if (!$successEl || !$successEl.length) return;
@@ -15,11 +12,14 @@
     successModal.show();
     setTimeout(function(){
       try{ successModal.hide(); } catch(e){}
-      try{ window.location.reload(); } catch(e){}
+      if (window.location.pathname.toLowerCase().endsWith('cart.php')) {
+        window.location.href = 'index.php';
+      } else {
+        try{ window.location.reload(); } catch(e){}
+      }
     }, 1800);
   }
 
-  // Custom validation methods for jQuery validation
   $.validator.addMethod("philippineMobile", function(value, element) {
     var digits = value.replace(/\D/g, '');
     return this.optional(element) || /^09\d{9}$/.test(digits);
@@ -38,10 +38,9 @@
     if (/[0-9]/.test(value)) score += 20;
     if (/[^A-Za-z0-9]/.test(value)) score += 20;
     if (value.length >= 12) score += 15;
-    return score >= 40; // Minimum acceptable strength
+    return score >= 40;
   }, "Password must be at least 8 characters with uppercase, lowercase, number, and special character");
 
-  // ------------------ LOGIN ------------------
   $(function(){
     var $loginModal = $('#loginModal');
     if (!$loginModal.length) return;
@@ -53,8 +52,7 @@
     var $form = $('#loginForm');
     if (!$form.length) return;
 
-    // Initialize jQuery validation for login form
-    $form.validate({
+  $form.validate({
       rules: {
         username: {
           required: true,
@@ -81,7 +79,7 @@
       errorPlacement: function(error, element) {
         error.addClass('invalid-feedback d-block');
         element.addClass('is-invalid');
-        // Prefer appending to the nearest field wrapper to avoid collapsing inputs
+        
         var $wrapper = element.closest('.mb-3, .col-md-6, .form-group');
         if ($wrapper.length) {
           $wrapper.append(error);
@@ -104,17 +102,23 @@
         var email = $.trim($form.find('[name="username"]').val() || '');
         var password = $form.find('[name="password"]').val() || '';
 
-        // AJAX login
-        $.ajax({
+  var cartPayload = [];
+        try { cartPayload = JSON.parse(localStorage.getItem('nethshop_cart_v1') || '[]'); } catch(e) { cartPayload = []; }
+  $.ajax({
           url: 'api/login.php',
           method: 'POST',
           contentType: 'application/json',
-          data: JSON.stringify({ email: email, password: password })
+          data: JSON.stringify({ email: email, password: password, cart: cartPayload })
         }).done(function(json){
-          // success
           var modal = $loginModal[0];
           try{ var bs = bootstrap.Modal.getInstance(modal); if (bs) bs.hide(); }catch(e){}
-          try { localStorage.setItem('nethshop_session', JSON.stringify({ user: json.user, ts: Date.now() })); } catch(e){}
+          try {
+            var session = { ts: Date.now() };
+            if (json && json.token) session.token = json.token;
+            if (json && json.user) session.user = json.user; else session.user = { email: email };
+            localStorage.setItem('nethshop_session', JSON.stringify(session));
+            try { if (window.Cart && typeof window.Cart.migrateGuestToUser === 'function') window.Cart.migrateGuestToUser(); } catch(e){}
+          } catch(e){}
           showSuccessModalAndRedirect('loginSuccessModal');
           $form[0].reset();
           $form.find('.is-valid').removeClass('is-valid');
@@ -122,12 +126,11 @@
           console.error('Login failed', xhr);
           alert('Login failed: ' + (xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'Server error'));
         });
-        return false; // Prevent default form submission
+        return false;
       }
     });
   });
 
-  // ------------------ SIGNUP ------------------
   $(function(){
     var $signupModal = $('#signupModal');
     if (!$signupModal.length) return;
@@ -150,17 +153,14 @@
       });
     }
 
-    // Force digits only
-    var $contactInput = $('#signupContact');
-    if ($contactInput.length){ $contactInput.on('input', function(){ var d = $(this).val().replace(/\D/g,''); $(this).val(d); }); }
+  var $contactInput = $('#signupContact');
+  if ($contactInput.length){ $contactInput.on('input', function(){ var d = $(this).val().replace(/\D/g,''); $(this).val(d); }); }
 
-    // Password toggle
-    function togglePasswordField($button){ if (!$button || !$button.length) return; var targetId = $button.data('target'); if (!targetId) return; var $input = $('#' + targetId); if (!$input.length) return; if ($input.attr('type') === 'password'){ $input.attr('type','text'); $button.attr('aria-label','Hide password'); $button.html('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a20.3 20.3 0 0 1 5.06-5.94"/><path d="M1 1l22 22"/></svg>'); } else { $input.attr('type','password'); $button.attr('aria-label','Show password'); $button.html('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>'); } }
+  function togglePasswordField($button){ if (!$button || !$button.length) return; var targetId = $button.data('target'); if (!targetId) return; var $input = $('#' + targetId); if (!$input.length) return; if ($input.attr('type') === 'password'){ $input.attr('type','text'); $button.attr('aria-label','Hide password'); $button.html('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a20.3 20.3 0 0 1 5.06-5.94"/><path d="M1 1l22 22"/></svg>'); } else { $input.attr('type','password'); $button.attr('aria-label','Show password'); $button.html('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>'); } }
 
     $('.password-toggle').off('click').on('click', function(e){ e.preventDefault(); togglePasswordField($(this)); });
 
-    // Initialize jQuery validation for signup form
-    $sform.validate({
+  $sform.validate({
       rules: {
         firstName: {
           required: true,
@@ -231,8 +231,7 @@
       errorPlacement: function(error, element) {
         error.addClass('invalid-feedback d-block');
         element.addClass('is-invalid');
-        // Prefer appending to the nearest field wrapper to keep layout intact
-        var $wrapper = element.closest('.mb-3, .col-md-6, .form-group');
+  var $wrapper = element.closest('.mb-3, .col-md-6, .form-group');
         if ($wrapper.length) {
           $wrapper.append(error);
         } else {
@@ -264,14 +263,17 @@
         $.ajax({ url: 'api/signup.php', method: 'POST', contentType: 'application/json', data: JSON.stringify(payload) })
           .done(function(json){
             try{ var bs = bootstrap.Modal.getInstance($signupModal[0]); if (bs) bs.hide(); }catch(e){}
-            // attempt auto-login
-            $.ajax({ url: 'api/login.php', method: 'POST', contentType: 'application/json', data: JSON.stringify({ email: email, password: password }) })
+            
+            var cartPayload = [];
+            try { cartPayload = JSON.parse(localStorage.getItem('nethshop_cart_v1') || '[]'); } catch(e) { cartPayload = []; }
+            $.ajax({ url: 'api/login.php', method: 'POST', contentType: 'application/json', data: JSON.stringify({ email: email, password: password, cart: cartPayload }) })
               .done(function(loginJson){
                 try{
                   var session = { ts: Date.now() };
                   if (loginJson && loginJson.token) session.token = loginJson.token;
                   if (loginJson && loginJson.user) session.user = loginJson.user; else session.user = { email: email, firstName: firstName, lastName: lastName };
                   localStorage.setItem('nethshop_session', JSON.stringify(session));
+                  try { if (window.Cart && typeof window.Cart.migrateGuestToUser === 'function') window.Cart.migrateGuestToUser(); } catch(e){}
                 }catch(e){}
                 showSuccessModalAndRedirect('signupSuccessModal');
                 $sform[0].reset();
@@ -284,7 +286,7 @@
             console.error('Signup failed', err);
             alert('Signup failed: ' + (err.responseJSON && err.responseJSON.error ? err.responseJSON.error : 'Server error'));
           });
-        return false; // Prevent default form submission
+        return false;
       }
     });
   });

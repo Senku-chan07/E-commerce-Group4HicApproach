@@ -1,3 +1,7 @@
+<?php
+require_once __DIR__ . '/api/session_handler.php';
+$current_user = get_session_user();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -19,11 +23,13 @@
         <form id="contactForm">
           <div class="mb-3">
             <label for="name" class="form-label">Full Name</label>
-            <input type="text" id="name" name="name" class="form-control" placeholder="Your name" required minlength="2">
+            <input type="text" id="name" name="name" class="form-control" placeholder="Your name" required minlength="2" 
+              value="<?php echo $current_user ? htmlspecialchars($current_user['name']) : ''; ?>">
           </div>
           <div class="mb-3">
             <label for="email" class="form-label">Email Address</label>
-            <input type="email" id="email" name="email" class="form-control" placeholder="name@example.com" required>
+            <input type="email" id="email" name="email" class="form-control" placeholder="name@example.com" required
+              value="<?php echo $current_user ? htmlspecialchars($current_user['user']['email']) : ''; ?>">
           </div>
           <div class="mb-3">
             <label for="message" class="form-label">Message</label>

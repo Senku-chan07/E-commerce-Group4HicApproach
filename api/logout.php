@@ -1,6 +1,9 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
+require_once __DIR__ . '/session_handler.php';
 
+session_start();
+// Store the message in a temporary cookie since we're destroying the session
+setcookie('flash_message', json_encode(['type' => 'info', 'message' => 'You have been successfully logged out.']), 0, '/');
 
 $_SESSION = [];
 
